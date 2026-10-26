@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Shopping List</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Shopping">
+<meta name="theme-color" content="#2f6f4f">
+<!-- Built by the meal bot (kidkare-bot/shop_page.py). The menu is in menu.enc,
+     encrypted; the key is in the link after "#k=". -->
+<style>
+:root {
+  --bg: #f6f6f3; --card: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #e3e3de;
+  --accent: #2f6f4f; --accent-ink: #ffffff; --done: #a3a39d; --star: #b07d00; --chip: #ecf3ef;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121412; --card: #1d201d; --ink: #ecece8; --muted: #9a9d97; --line: #2e322e;
+          --accent: #5fae86; --accent-ink: #0d1a12; --done: #62665f; --star: #e3b341; --chip: #1f2b24; }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg);
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 8px; border-bottom: 1px solid var(--line); }
+.top, .tabs { max-width: 688px; margin-left: auto; margin-right: auto; }
+.top { display: flex; align-items: center; gap: 8px; }
+.top h1 { flex: 1; margin: 0; font-size: 19px; text-align: center; }
+.top small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+.nav { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--card);
+  color: var(--ink); font-size: 22px; cursor: pointer; }
+.tabs { display: flex; gap: 6px; margin-top: 10px; }
+.tabs button, .opt { flex: 1; min-height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font-size: 15px; cursor: pointer; }
+.tabs button[aria-pressed="true"], .opt[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+main { padding: 12px 16px calc(env(safe-area-inset-bottom) + 40px); max-width: 720px; margin: 0 auto; }
+.bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.bar .opt { flex: 0 1 auto; padding: 0 12px; }
+.count { color: var(--muted); font-size: 15px; margin: 2px 0 10px; }
+h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 4px 6px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 6px 8px 14px; border-top: 1px solid var(--line); cursor: pointer; }
+.row:first-child { border-top: 0; }
+.box { flex: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--muted); display: grid; place-items: center; }
+.row.done .box { background: var(--accent); border-color: var(--accent); }
+.row.done .box::after { content: ""; width: 7px; height: 13px; border: solid var(--accent-ink); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-1px, -1px); }
+.what { flex: 1; min-width: 0; }
+.name { overflow-wrap: anywhere; }
+.days { font-size: 13px; color: var(--muted); }
+.row.done .name { color: var(--done); text-decoration: line-through; }
+.star { color: var(--star); }
+.more { flex: none; width: 44px; height: 44px; border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+.note { color: var(--muted); font-size: 14px; margin: 10px 4px; }
+.empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+.meal { padding: 10px 14px; border-top: 1px solid var(--line); }
+.meal:first-child { border-top: 0; }
+.meal b { display: block; font-size: 14px; color: var(--muted); font-weight: 600; }
+.prep { background: var(--chip); border-radius: 12px; padding: 10px 14px; margin: 10px 0; font-size: 15px; }
+.daycard { margin-bottom: 12px; }
+.daycard h3 { margin: 0; padding: 10px 14px; font-size: 16px; border-bottom: 1px solid var(--line); }
+#sheet { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; }
+#sheet[hidden] { display: none; }
+.panel { background: var(--card); width: 100%; max-height: 80vh; overflow: auto; border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px); }
+.panel h3 { margin: 0 0 6px; }
+.panel ul { padding-left: 20px; margin: 8px 0; }
+.panel li { padding: 4px 0; }
+.panel .opt { width: 100%; margin-top: 10px; }
+#qr { display: grid; place-items: center; padding: 12px; background: #fff; border-radius: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <button class="nav" id="prev" aria-label="Previous week">‹</button>
+    <h1 id="title">Shopping List</h1>
+    <button class="nav" id="next" aria-label="Next week">›</button>
+  </div>
+  <div class="tabs">
+    <button id="tab-list" aria-pressed="true">Shopping list</button>
+    <button id="tab-menu" aria-pressed="false">Menu</button>
+  </div>
+</header>
+<main id="app"><p class="empty">Loading…</p></main>
+<div id="sheet" hidden><div class="panel" id="panel"></div></div>
+<script>
+'use strict';
+const MEALS = ['Breakfast', 'Lunch', 'PM Snack'];
+const GROUPS = [['milk', 'Milk'], ['meat', 'Meat & protein'], ['bread', 'Bread & grains'], ['fruit', 'Fruit'], ['vegetable', 'Vegetables']];
+const MILK_LABEL = 'Milk - whole for under 2, 1% or skim for 2 and up';
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+let DATA = null;
+const state = { tab: 'list', monday: null, twoWeeks: false, infants: true };
+
+// ---------- storage (may be unavailable: private mode etc.) ----------
+function load(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } }
+function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+// ---------- decryption: matches encrypt() in shop_page.py ----------
+const te = new TextEncoder();
+function b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
+  const bin = atob(s), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
+const hkey = raw => crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+const mac = async (key, data) => new Uint8Array(await crypto.subtle.sign('HMAC', key, data));
+async function decrypt(blob, master) {
+  const mk = await hkey(master);
+  const encKey = await hkey(await mac(mk, te.encode('shop-list enc')));
+  const macKey = await hkey(await mac(mk, te.encode('shop-list mac')));
+  const nonce = b64(blob.nonce), ct = b64(blob.ct), tag = b64(blob.tag);
+  const signed = new Uint8Array(nonce.length + ct.length); signed.set(nonce); signed.set(ct, nonce.length);
+  const want = await mac(macKey, signed);
+  if (want.length !== tag.length || want.some((b, i) => b !== tag[i])) throw new Error('key');
+  const jobs = [];
+  for (let i = 0; i < Math.ceil(ct.length / 32); i++) {
+    const m = new Uint8Array(nonce.length + 4); m.set(nonce); new DataView(m.buffer).setUint32(nonce.length, i); jobs.push(mac(encKey, m));
+  }
+  const ks = await Promise.all(jobs), out = new Uint8Array(ct.length);
+  for (let i = 0; i < ct.length; i++) out[i] = ct[i] ^ ks[i >> 5][i & 31];
+  return JSON.parse(new TextDecoder().decode(out));
+}
+
+// ---------- dates: the cycle rule from menu_cycle.month_day_index ----------
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const isWeekday = d => d.getDay() !== 0 && d.getDay() !== 6;
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function monthDayIndex(d) {
+  if (!isWeekday(d)) return null;
+  let n = 0;
+  for (let x = new Date(d.getFullYear(), d.getMonth(), 1); x < d; x = addDays(x, 1)) if (isWeekday(x)) n++;
+  return n;
+}
+function cycleDay(d) { const i = monthDayIndex(d); return i === null ? null : DATA.days[i % DATA.days.length]; }
+const mondayOf = d => addDays(d, -((d.getDay() + 6) % 7));
+function today() { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+// Fri/Sat/Sun shop for the coming week; Mon-Thu for this one.
+function defaultMonday(t) { const m = mondayOf(t); return [5, 6, 0].includes(t.getDay()) ? addDays(m, 7) : m; }
+function weekDates(monday, weeks) { const out = []; for (let w = 0; w < weeks; w++) for (let i = 0; i < 5; i++) out.push(addDays(monday, 7 * w + i)); return out; }
+
+// ---------- the list (same rules as shopping_list.weekly_items) ----------
+function weekList(dates) {
+  const groups = new Map(GROUPS.map(([, h]) => [h, new Map()]));
+  const infant = new Map(), big = new Set();
+  const add = (map, name, d, meal, comp, wg) => {
+    const k = name.toLowerCase();
+    const e = map.get(k) || { name, key: k, dates: [], meals: new Set(), comp, wg: false };
+    if (!e.dates.some(x => +x === +d)) e.dates.push(d);
+    e.meals.add(meal); e.wg = e.wg || !!wg; map.set(k, e);
+  };
+  for (const d of dates) {
+    const day = cycleDay(d); if (!day) continue;
+    for (const meal of MEALS) {
+      const it = (day.meals || {})[meal] || {};
+      for (const [c, h] of GROUPS) {
+        let name = it[c]; if (!name) continue;
+        if (c === 'milk' && name === 'Milk') name = MILK_LABEL;
+        add(groups.get(h), name, d, meal, c, c === 'bread' && it.wg); big.add(name.toLowerCase());
+      }
+    }
+  }
+  for (const d of dates) {
+    const day = cycleDay(d); if (!day || !day.infant) continue;
+    for (const meal of MEALS) {
+      const it = day.infant[meal] || {};
+      for (const [c] of GROUPS) { const name = it[c]; if (name && !big.has(name.toLowerCase())) add(infant, name, d, meal, c, false); }
+    }
+  }
+  const out = [];
+  for (const [h, m] of groups) if (m.size) out.push([h, [...m.values()]]);
+  if (infant.size) out.push(['Infants only', [...infant.values()].map(e => Object.assign(e, { infant: true }))]);
+  return out;
+}
+
+// ---------- rendering helpers ----------
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') n.className = v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) n.append(k.nodeType ? k : String(k));
+  return n;
+}
+const fmt = d => `${MONTH[d.getMonth()]} ${d.getDate()}`;
+function weekTitle(monday, weeks) {
+  const last = addDays(monday, 7 * (weeks - 1) + 4);
+  const range = monday.getMonth() === last.getMonth() ? `${fmt(monday)} – ${last.getDate()}` : `${fmt(monday)} – ${fmt(last)}`;
+  const diff = Math.round((monday - mondayOf(today())) / 864e5 / 7);
+  const label = diff === 0 ? 'This week' : diff === 1 ? 'Next week' : diff === -1 ? 'Last week' : '';
+  return [label ? `${label}${weeks > 1 ? ' + next' : ''}` : (weeks > 1 ? '2 weeks' : 'Week of'), range];
+}
+const dayLabel = (d, many) => many ? `${DAY[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}` : DAY[d.getDay()];
+
+function render() {
+  const weeks = state.twoWeeks ? 2 : 1;
+  const [label, range] = weekTitle(state.monday, weeks);
+  const title = document.getElementById('title'); title.replaceChildren(range, el('small', {}, label));
+  document.getElementById('tab-list').setAttribute('aria-pressed', state.tab === 'list');
+  document.getElementById('tab-menu').setAttribute('aria-pressed', state.tab === 'menu');
+  const app = document.getElementById('app');
+  app.replaceChildren(...(state.tab === 'list' ? renderList(weeks) : renderMenu(weeks)));
+}
+
+function renderList(weeks) {
+  const dates = weekDates(state.monday, weeks);
+  const tickKey = 'ticks:' + ymd(state.monday) + ':' + weeks;
+  const ticks = new Set(load(tickKey, []));
+  const have = new Set(load('have', []));
+  let groups = weekList(dates);
+  if (!state.infants) groups = groups.filter(([h]) => h !== 'Infants only');
+  const hidden = [];
+  let total = 0, left = 0;
+  const parts = [];
+  parts.push(el('div', { class: 'bar' },
+    el('button', { class: 'opt', 'aria-pressed': state.twoWeeks, onclick: () => { state.twoWeeks = !state.twoWeeks; store('twoWeeks', state.twoWeeks); render(); } }, '2 weeks'),
+    el('button', { class: 'opt', 'aria-pressed': state.infants, onclick: () => { state.infants = !state.infants; store('infants', state.infants); render(); } }, 'Infants'),
+    el('button', { class: 'opt', onclick: () => copyList(groups, ticks, have) }, 'Copy list'),
+    el('button', { class: 'opt', onclick: () => { store(tickKey, []); render(); } }, 'Clear ticks')));
+  const count = el('p', { class: 'count' });
+  parts.push(count);
+  for (const [heading, items] of groups) {
+    const shown = items.filter(e => !have.has(e.key));
+    hidden.push(...items.filter(e => have.has(e.key)));
+    if (!shown.length) continue;
+    shown.sort((a, b) => (ticks.has(a.key) - ticks.has(b.key)) || a.name.localeCompare(b.name));
+    total += shown.length; left += shown.filter(e => !ticks.has(e.key)).length;
+    parts.push(el('h2', {}, heading));
+    parts.push(el('div', { class: 'card' }, shown.map(e => {
+      const done = ticks.has(e.key);
+      const days = e.dates.sort((a, b) => a - b).map(d => dayLabel(d, weeks > 1)).join(', ');
+      return el('div', { class: 'row' + (done ? ' done' : ''), onclick: () => {
+          done ? ticks.delete(e.key) : ticks.add(e.key); store(tickKey, [...ticks]); render(); } },
+        el('span', { class: 'box', 'aria-hidden': 'true' }),
+        el('div', { class: 'what' }, el('div', { class: 'name' }, e.name, e.wg ? el('span', { class: 'star' }, ' ★') : null),
+          el('div', { class: 'days' }, days)),
+        el('button', { class: 'more', 'aria-label': 'Swaps and options for ' + e.name,
+          onclick: ev => { ev.stopPropagation(); openItem(e); } }, '⋯'));
+    })));
+  }
+  if (!total && !hidden.length) parts.push(el('p', { class: 'empty' }, 'Nothing on the menu this week.'));
+  count.textContent = total ? `${left} of ${total} left to get` : '';
+  if (hidden.length) parts.push(el('p', { class: 'note' }, `Always have (hidden): ${hidden.map(e => e.name).join(', ')}. Tap ⋯ on an item to change.`),
+    el('button', { class: 'opt', onclick: () => { store('have', []); render(); } }, 'Show them again'));
+  parts.push(el('p', { class: 'note' }, '★ = buy the whole grain-rich kind (a whole grain listed first in the ingredients). Tap ⋯ for foods that count the same if the store is out.'));
+  return parts;
+}
+
+function swapsFor(e) {
+  if (e.infant || e.comp === 'milk') return [];
+  const out = new Map();
+  for (const meal of e.meals) for (const n of ((DATA.swaps[meal] || {})[e.comp] || [])) if (n.toLowerCase() !== e.key) out.set(n.toLowerCase(), n);
+  return [...out.values()].sort((a, b) => a.localeCompare(b));
+}
+
+function openItem(e) {
+  const have = new Set(load('have', []));
+  const swaps = swapsFor(e);
+  const panel = document.getElementById('panel');
+  const swapPart = swaps.length
+    ? [el('b', {}, `Out of it? These count the same for ${[...e.meals].join(' / ')}:`),
+       e.wg ? el('p', { class: 'note' }, 'Pick a whole grain-rich one to keep the day\'s whole grain.') : '',
+       el('p', { class: 'note' }, 'If you swap, let whoever enters the meals know, so the menu and KidKare match what was served.'),
+       el('ul', {}, swaps.map(s => el('li', {}, s)))]
+    : [el('p', { class: 'note' }, e.infant ? 'Infant foods: ask before swapping.' : 'Nothing to swap for this one.')];
+  panel.replaceChildren(
+    el('h3', {}, e.name),
+    el('p', { class: 'note' }, `Served: ${[...e.meals].join(', ')}`),
+    ...swapPart,
+    el('button', { class: 'opt', onclick: () => {
+      have.has(e.key) ? have.delete(e.key) : have.add(e.key); store('have', [...have]); closeSheet(); render(); } },
+      have.has(e.key) ? 'Show it on the list again' : 'We always have this - hide it'),
+    el('button', { class: 'opt', onclick: closeSheet }, 'Close'));
+  document.getElementById('sheet').hidden = false;
+}
+function closeSheet() { document.getElementById('sheet').hidden = true; }
+
+function copyList(groups, ticks, have) {
+  const lines = [];
+  for (const [h, items] of groups) {
+    const rest = items.filter(e => !ticks.has(e.key) && !have.has(e.key));
+    if (rest.length) { lines.push(h.toUpperCase()); rest.forEach(e => lines.push(e.name + (e.wg ? ' ★' : ''))); lines.push(''); }
+  }
+  const text = lines.join('\n').trim();
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+    () => toast('Copied. Paste into Reminders to get one checkbox per line.'),
+    () => toast('Could not copy on this phone.'));
+}
+function toast(msg) {
+  const panel = document.getElementById('panel');
+  panel.replaceChildren(el('p', {}, msg), el('button', { class: 'opt', onclick: closeSheet }, 'OK'));
+  document.getElementById('sheet').hidden = false;
+}
+
+const PREP_SKIP = /cheese|peanut|egg|yogurt|bean|tuna/i;
+function renderMenu(weeks) {
+  const parts = [];
+  const t = today();
+  let next = addDays(t, 1); while (!isWeekday(next)) next = addDays(next, 1);
+  const nextDay = cycleDay(next);
+  if (nextDay) {
+    const prep = [];
+    for (const meal of MEALS) {
+      const it = nextDay.meals[meal] || {};
+      for (const c of ['meat', 'bread', 'fruit', 'vegetable']) {
+        const n = it[c];
+        if (n && (/frozen/i.test(n) || (c === 'meat' && !PREP_SKIP.test(n)))) prep.push(`${n} (${meal})`);
+      }
+    }
+    parts.push(el('div', { class: 'prep' }, el('b', {}, `Next up, ${DAY[next.getDay()]} ${next.getMonth() + 1}/${next.getDate()}: `),
+      prep.length ? 'check you have these, and thaw any that need it - ' + prep.join(', ') + '.' : 'nothing to thaw.'));
+  }
+  for (const d of weekDates(state.monday, weeks)) {
+    const day = cycleDay(d); if (!day) continue;
+    const isToday = +d === +t;
+    parts.push(el('div', { class: 'card daycard' },
+      el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)}${isToday ? ' · Today' : ''}`),
+      MEALS.map(meal => {
+        const it = day.meals[meal] || {};
+        const names = GROUPS.map(([c]) => it[c]).filter(Boolean).map(n => n + (n === it.bread && it.wg ? ' ★' : ''));
+        const inf = state.infants && day.infant && day.infant[meal] ? GROUPS.map(([c]) => day.infant[meal][c]).filter(Boolean) : [];
+        return el('div', { class: 'meal' }, el('b', {}, meal), names.join(', '),
+          inf.length ? el('div', { class: 'days' }, 'Infants: ' + inf.join(', ')) : null);
+      })));
+  }
+  parts.push(el('p', { class: 'note' }, `Menu updated ${DATA.updated}. Closed days aren't shown here.`));
+  parts.push(el('button', { class: 'opt', onclick: showQr }, 'Show QR code for this page'));
+  return parts;
+}
+
+function showQr() {
+  const panel = document.getElementById('panel');
+  const box = el('div', { id: 'qr' });
+  panel.replaceChildren(el('h3', {}, 'Scan to open this page'),
+    el('p', { class: 'note' }, 'Anyone who scans this can open the list and menu.'), box,
+    el('button', { class: 'opt', onclick: closeSheet }, 'Close'));
+  document.getElementById('sheet').hidden = false;
+  const draw = () => new QRCode(box, { text: location.origin + location.pathname + '#k=' + load('key', ''), width: 240, height: 240 });
+  if (window.QRCode) return draw();
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload = draw; s.onerror = () => box.replaceChildren('QR code needs an internet connection.');
+  document.head.append(s);
+}
+
+// ---------- start ----------
+async function start() {
+  const m = /[#&]k=([A-Za-z0-9_-]+)/.exec(location.hash);
+  if (m) store('key', m[1]);
+  const key = m ? m[1] : load('key', '');
+  const app = document.getElementById('app');
+  if (!key) { app.replaceChildren(el('p', { class: 'empty' }, 'This link is missing its key. Open the full link you were sent.')); return; }
+  try {
+    const blob = await (await fetch('menu.enc', { cache: 'no-cache' })).json();
+    DATA = await decrypt(blob, b64(key));
+  } catch (e) {
+    app.replaceChildren(el('p', { class: 'empty' }, e.message === 'key'
+      ? 'This link\'s key doesn\'t match. Open the newest link you were sent.' : 'Could not load the list. Check the connection and try again.'));
+    return;
+  }
+  state.twoWeeks = load('twoWeeks', false); state.infants = load('infants', true);
+  state.monday = defaultMonday(today());
+  document.getElementById('prev').onclick = () => { state.monday = addDays(state.monday, -7); render(); };
+  document.getElementById('next').onclick = () => { state.monday = addDays(state.monday, 7); render(); };
+  document.getElementById('tab-list').onclick = () => { state.tab = 'list'; render(); };
+  document.getElementById('tab-menu').onclick = () => { state.tab = 'menu'; render(); };
+  document.getElementById('sheet').onclick = ev => { if (ev.target.id === 'sheet') closeSheet(); };
+  render();
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+start();
+</script>
+</body>
+</html>

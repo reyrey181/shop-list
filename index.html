@@ -107,8 +107,7 @@ function b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length %
   const bin = atob(s), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
 const hkey = raw => crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
 const mac = async (key, data) => new Uint8Array(await crypto.subtle.sign('HMAC', key, data));
-async function decrypt(blob, master) { return JSON.parse(new TextDecoder().decode(await decryptBytes(blob, master))); }
-async function decryptBytes(blob, master) {
+async function decrypt(blob, master) {
   const mk = await hkey(master);
   const encKey = await hkey(await mac(mk, te.encode('shop-list enc')));
   const macKey = await hkey(await mac(mk, te.encode('shop-list mac')));
@@ -122,32 +121,7 @@ async function decryptBytes(blob, master) {
   }
   const ks = await Promise.all(jobs), out = new Uint8Array(ct.length);
   for (let i = 0; i < ct.length; i++) out[i] = ct[i] ^ ks[i >> 5][i & 31];
-  return out;
-}
-// Optional password (shop_page.set_password): key.wrap is the key locked with
-// a PBKDF2-SHA256 key from the password.
-async function keyFromPassword(pw, wrap) {
-  const base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: b64(wrap.salt), iterations: wrap.iterations }, base, 256);
-  const master = await decryptBytes(wrap, new Uint8Array(bits));
-  return btoa(String.fromCharCode(...master)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-function askPassword(wrap) {
-  return new Promise(resolve => {
-    const input = el('input', { type: 'password', autocomplete: 'current-password', placeholder: 'Password',
-      style: 'width:100%;min-height:48px;font-size:17px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)' });
-    const msg = el('p', { class: 'note' });
-    const go = async ev => {
-      ev.preventDefault(); msg.textContent = 'Checking…';
-      try { resolve(await keyFromPassword(input.value, wrap)); }
-      catch (e) { msg.textContent = 'That password isn\'t right.'; }
-    };
-    document.getElementById('app').replaceChildren(el('form', { onsubmit: go },
-      el('p', {}, 'Enter the shopping list password.'), input, msg,
-      el('button', { class: 'opt', type: 'submit' }, 'Open'),
-      el('p', { class: 'note' }, 'Or open the full link you were sent - it doesn\'t need the password.')));
-    input.focus();
-  });
+  return JSON.parse(new TextDecoder().decode(out));
 }
 
 // ---------- dates: the cycle rule from menu_cycle.month_day_index ----------
@@ -375,16 +349,9 @@ function showQr() {
 async function start() {
   const m = /[#&]k=([A-Za-z0-9_-]+)/.exec(location.hash);
   if (m) store('key', m[1]);
-  let key = m ? m[1] : load('key', '');
+  const key = m ? m[1] : load('key', '');
   const app = document.getElementById('app');
-  if (!key) {
-    let wrap = null;
-    try { const r = await fetch('key.wrap', { cache: 'no-cache' }); if (r.ok) wrap = await r.json(); } catch (e) {}
-    if (!wrap) { app.replaceChildren(el('p', { class: 'empty' }, 'This link is missing its key. Open the full link you were sent.')); return; }
-    key = await askPassword(wrap);
-    store('key', key);
-    app.replaceChildren(el('p', { class: 'empty' }, 'Loading…'));
-  }
+  if (!key) { app.replaceChildren(el('p', { class: 'empty' }, 'This link is missing its key. Open the full link you were sent.')); return; }
   try {
     const blob = await (await fetch('menu.enc', { cache: 'no-cache' })).json();
     DATA = await decrypt(blob, b64(key));

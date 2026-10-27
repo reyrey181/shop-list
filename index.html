@@ -134,7 +134,15 @@ function monthDayIndex(d) {
   for (let x = new Date(d.getFullYear(), d.getMonth(), 1); x < d; x = addDays(x, 1)) if (isWeekday(x)) n++;
   return n;
 }
-function cycleDay(d) { const i = monthDayIndex(d); return i === null ? null : DATA.days[i % DATA.days.length]; }
+// A month already made (shop_page.made_months) is used as it is - that's what
+// KidKare gets, closures included; the cycle only fills months not made yet.
+const isClosed = d => (DATA.closed || []).includes(ymd(d));
+function cycleDay(d) {
+  if (!isWeekday(d) || isClosed(d)) return null;
+  const made = (DATA.dated || {})[ymd(d)];
+  if (made) return made;
+  return DATA.days[monthDayIndex(d) % DATA.days.length];
+}
 const mondayOf = d => addDays(d, -((d.getDay() + 6) % 7));
 function today() { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
 // Fri/Sat/Sun shop for the coming week; Mon-Thu for this one.
@@ -313,8 +321,9 @@ function renderMenu(weeks) {
       prep.length ? 'check you have these, and thaw any that need it - ' + prep.join(', ') + '.' : 'nothing to thaw.'));
   }
   for (const d of weekDates(state.monday, weeks)) {
-    const day = cycleDay(d); if (!day) continue;
     const isToday = +d === +t;
+    if (isClosed(d)) { parts.push(el('div', { class: 'card daycard' }, el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)} · Closed`))); continue; }
+    const day = cycleDay(d); if (!day) continue;
     parts.push(el('div', { class: 'card daycard' },
       el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)}${isToday ? ' · Today' : ''}`),
       MEALS.map(meal => {
@@ -325,7 +334,7 @@ function renderMenu(weeks) {
           inf.length ? el('div', { class: 'days' }, 'Infants: ' + inf.join(', ')) : null);
       })));
   }
-  parts.push(el('p', { class: 'note' }, `Menu updated ${DATA.updated}. Closed days aren't shown here.`));
+  parts.push(el('p', { class: 'note' }, `Menu updated ${DATA.updated}. Months not made yet show the usual cycle; closures show once they're entered.`));
   parts.push(el('button', { class: 'opt', onclick: showQr }, 'Show QR code for this page'));
   return parts;
 }
@@ -345,13 +354,30 @@ function showQr() {
   document.head.append(s);
 }
 
+// No key: e.g. an iPhone home-screen icon, which keeps its own storage apart
+// from Safari's. Pasting the full link once saves the key for this copy.
+function askForLink() {
+  const input = el('input', { type: 'text', inputmode: 'url', autocapitalize: 'off', placeholder: 'https://…/shop-list/#k=…', autocomplete: 'off',
+    style: 'width:100%;min-height:48px;font-size:16px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)' });
+  const msg = el('p', { class: 'note' });
+  const go = ev => {
+    ev.preventDefault();
+    const k = /[#&]k=([A-Za-z0-9_-]+)/.exec(input.value.trim());
+    if (!k) { msg.textContent = 'That doesn\'t look like the full link - it should end with #k= and a long code.'; return; }
+    store('key', k[1]); location.hash = 'k=' + k[1]; location.reload();
+  };
+  document.getElementById('app').replaceChildren(el('form', { onsubmit: go },
+    el('p', {}, 'Paste the shopping list link you were sent (the whole thing). This only needs doing once.'),
+    input, msg, el('button', { class: 'opt', type: 'submit' }, 'Open')));
+}
+
 // ---------- start ----------
 async function start() {
   const m = /[#&]k=([A-Za-z0-9_-]+)/.exec(location.hash);
   if (m) store('key', m[1]);
   const key = m ? m[1] : load('key', '');
   const app = document.getElementById('app');
-  if (!key) { app.replaceChildren(el('p', { class: 'empty' }, 'This link is missing its key. Open the full link you were sent.')); return; }
+  if (!key) { askForLink(); return; }
   try {
     const blob = await (await fetch('menu.enc', { cache: 'no-cache' })).json();
     DATA = await decrypt(blob, b64(key));

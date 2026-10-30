@@ -147,7 +147,6 @@ body.compact .row { min-height: 46px; padding-top: 4px; padding-bottom: 4px; }
 .seg button[aria-pressed="true"] { background: var(--seg-on); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 .bar { align-items: center; }
 .bar .add { margin-left: auto; flex: 0 0 auto; padding: 0 14px; }
-.actions { margin-top: 18px; }
 /* Sections: count of what's bought; a finished one folds to one line. */
 h2 { display: flex; align-items: center; gap: 8px; }
 h2 .cnt { margin-left: auto; letter-spacing: 0; }
@@ -186,7 +185,8 @@ body:not(.ready) .tabbar { display: none; }
 main { padding-bottom: calc(env(safe-area-inset-bottom) + 100px); }
 #snack { bottom: calc(env(safe-area-inset-bottom) + 80px); }
 .top .nav { width: 40px; height: 40px; }
-/* Tablets: two columns of sections and of days. */
+/* Tablets and PCs: two columns of sections and of days. Phones held upright
+   are always under 760px, so they stay one column. */
 @media (min-width: 760px) {
   main { max-width: 1060px; }
   .top, .tabs, #progress { max-width: 1028px; }
@@ -420,6 +420,15 @@ function renderList(weeks) {
       el('button', { 'aria-pressed': state.twoWeeks === two, onclick: () => { state.twoWeeks = two; store('twoWeeks', two); render(); } },
         two ? '2 weeks' : '1 week'))),
     el('button', { class: 'opt add', onclick: openAdd }, '+ Add item')));
+  parts.push(el('div', { class: 'bar' },
+    el('button', { class: 'opt', onclick: () => copyList(groups, isDone, have) }, 'Copy list'),
+    el('button', { class: 'opt', onclick: () => {
+      const before = load(tickKey, []), beforeMine = load(MINE, []);
+      const n = before.length + beforeMine.filter(m => m.done).length;
+      if (!n) { snack('Nothing is ticked.'); return; }
+      store(tickKey, []); setMine(list => list.filter(m => !m.done)); render();
+      snack(`Cleared ${n} tick${n === 1 ? '' : 's'}.`, 'Undo', () => { store(tickKey, before); store(MINE, beforeMine); render(); });
+    } }, 'Clear ticks')));
   parts.push(...notices());
   if (!state.infants) parts.push(el('div', { class: 'prep notice' }, 'Infant foods are hidden.',
     el('button', { class: 'opt', onclick: () => { state.infants = true; store(SAVED_AS.infants, true); render(); } }, 'Show them')));
@@ -455,15 +464,6 @@ function renderList(weeks) {
   showProgress(got, total);
   if (hidden.length) parts.push(el('p', { class: 'note' }, `Always have (hidden): ${hidden.map(e => e.name).join(', ')}. Tap ⋯ on an item to change.`),
     el('button', { class: 'opt', onclick: () => { store('have', []); render(); } }, 'Show them again'));
-  parts.push(el('div', { class: 'bar actions' },
-    el('button', { class: 'opt', onclick: () => copyList(groups, isDone, have) }, 'Copy list'),
-    el('button', { class: 'opt', onclick: () => {
-      const before = load(tickKey, []), beforeMine = load(MINE, []);
-      const n = before.length + beforeMine.filter(m => m.done).length;
-      if (!n) { snack('Nothing is ticked.'); return; }
-      store(tickKey, []); setMine(list => list.filter(m => !m.done)); render();
-      snack(`Cleared ${n} tick${n === 1 ? '' : 's'}.`, 'Undo', () => { store(tickKey, before); store(MINE, beforeMine); render(); });
-    } }, 'Clear ticks')));
   parts.push(el('p', { class: 'note' }, '★ = buy the whole grain-rich kind (a whole grain listed first in the ingredients). Tap ⋯ for foods that count the same if the store is out.'));
   if (state.groupBy === 'day') parts.push(el('p', { class: 'note' }, 'Each food is under the first day it\'s needed.'));
   return parts;

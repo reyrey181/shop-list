@@ -18,12 +18,12 @@
   color-scheme: light dark; /* native controls (the settings checkbox) follow the theme */
   --bg: #f6f6f3; --card: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #e3e3de;
   --accent: #2f6f4f; --accent-ink: #ffffff; --done: #a3a39d; --star: #b07d00; --chip: #ecf3ef;
-  --snack-btn: #8fd1ae;
+  --snack-btn: #8fd1ae; --track: #d3d3cd;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #121412; --card: #1d201d; --ink: #ecece8; --muted: #9a9d97; --line: #2e322e;
           --accent: #5fae86; --accent-ink: #0d1a12; --done: #62665f; --star: #e3b341; --chip: #1f2b24;
-          --snack-btn: #2f6f4f; }
+          --snack-btn: #2f6f4f; --track: #3c413c; }
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
@@ -86,6 +86,37 @@ h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: v
 #progress .track { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
 #progress .fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width .25s; }
 #progress.done { color: var(--accent); font-weight: 600; }
+/* Settings: grey sheet, white cards, like a phone's own settings. */
+.panel.grouped, .panel.grouped .sheet-head { background: var(--bg); }
+.cap { margin: 18px 4px 8px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.foot { margin: 8px 4px 4px; font-size: 13px; color: var(--muted); }
+.views { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.view { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 108px; padding: 14px;
+  border: 2px solid var(--line); border-radius: 16px; background: var(--card); cursor: pointer; transition: border-color .15s, background .15s; }
+.view input { position: absolute; opacity: 0; pointer-events: none; }
+.view svg { width: 26px; height: 26px; margin-bottom: 6px; color: var(--muted); }
+.view b { font-size: 16px; }
+.view small { font-size: 13px; line-height: 1.3; color: var(--muted); }
+.view.on { border-color: var(--accent); background: var(--chip); }
+.view.on svg { color: var(--accent); }
+.view.on::after { content: "✓"; position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 11px;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 700; }
+.view:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.group { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.opt-row { display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 10px 14px; cursor: pointer; }
+.opt-row + .opt-row { border-top: 1px solid var(--line); }
+.ico { flex: none; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; }
+.ico svg { width: 18px; height: 18px; }
+.opt-row .txt { flex: 1; min-width: 0; }
+.opt-row small { display: block; margin-top: 1px; font-size: 13px; color: var(--muted); }
+/* On/off switch (a checkbox underneath, so it still works with a keyboard and screen reader). */
+.switch { -webkit-appearance: none; appearance: none; flex: none; position: relative; width: 51px; height: 31px; margin: 0;
+  border-radius: 16px; background: var(--track); cursor: pointer; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%;
+  background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.25); transition: transform .2s; }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(20px); }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body.compact .row { min-height: 46px; padding-top: 4px; padding-bottom: 4px; }
 body.compact .row .days { display: none; }
 /* Title and ✕ stay at the top however long the sheet is. */
@@ -394,6 +425,7 @@ function openItem(e) {
 // A bottom sheet with its title and ✕ kept at the top.
 function openSheet(title, ...body) {
   const panel = document.getElementById('panel');
+  panel.className = 'panel';
   panel.replaceChildren(el('div', { class: 'sheet-head' }, el('h3', {}, title),
     el('button', { class: 'x', 'aria-label': 'Close', onclick: closeSheet }, '✕')), ...body);
   document.getElementById('sheet').hidden = false;
@@ -401,33 +433,60 @@ function openSheet(title, ...body) {
 }
 function closeSheet() { document.getElementById('sheet').hidden = true; }
 
+// Small line icons (24px grid, drawn with the text color).
+function icon(paths) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+  svg.innerHTML = paths;
+  return svg;
+}
+const ICONS = {
+  type: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  aisle: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.4 11.2a2 2 0 0 0 2 1.6h8.3a2 2 0 0 0 2-1.5L22 7H6"/>',
+  day: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+  az: '<path d="M4 6h10M4 12h7M4 18h4M18 4v16M15 17l3 3 3-3"/>',
+  infants: '<circle cx="12" cy="12" r="9"/><path d="M9 14.5a3.5 3.5 0 0 0 6 0M9 9.5h.01M15 9.5h.01"/>',
+  sinkTicked: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  compact: '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
+};
 const VIEWS = [
-  ['type', 'Food type', 'Milk, meat, bread, fruit, vegetables, extras, infants.'],
-  ['aisle', 'Store aisle', 'Produce, bakery, meat, dairy, pantry, frozen, baby. Move a food with ⋯.'],
-  ['day', 'Day needed', 'Each food under the first day it\'s served - what to buy first.'],
-  ['az', 'A–Z', 'One list, no groups.'],
+  ['type', 'Food type', 'Milk, meat, bread, fruit, veg, extras'],
+  ['aisle', 'Store aisle', 'In the order you walk the store'],
+  ['day', 'Day needed', 'What to buy first'],
+  ['az', 'A–Z', 'One plain list'],
 ];
+// Laid out like a phone's own settings: the views as cards to pick from,
+// the options as switches in a grouped list.
 function openSettings() {
-  const choice = (input, label, hint) => el('label', { class: 'setting' }, el('span', {}, label, el('small', {}, hint)), input);
-  const views = VIEWS.map(([v, label, hint]) => {
+  const tiles = VIEWS.map(([v, label, hint]) => {
     const r = el('input', { type: 'radio', name: 'groupBy', value: v });
     r.checked = state.groupBy === v;
-    r.addEventListener('change', () => { state.groupBy = v; store('groupBy', v); render(); });
-    return choice(r, label, hint);
+    const tile = el('label', { class: 'view' + (r.checked ? ' on' : '') }, r, icon(ICONS[v]), el('b', {}, label), el('small', {}, hint));
+    r.addEventListener('change', () => {
+      state.groupBy = v; store('groupBy', v); render();
+      tile.parentNode.querySelectorAll('.view').forEach(t => t.classList.toggle('on', t === tile));
+    });
+    return tile;
   });
-  const toggle = (key, label, hint) => {
-    const c = el('input', { type: 'checkbox' });
+  const toggle = (key, label, hint, color) => {
+    const c = el('input', { type: 'checkbox', class: 'switch', role: 'switch' });
     c.checked = state[key];
     c.addEventListener('change', () => { state[key] = c.checked; store(key, c.checked); render(); });
-    return choice(c, label, hint);
+    return el('label', { class: 'opt-row' }, el('span', { class: 'ico', style: `background:${color}` }, icon(ICONS[key])),
+      el('span', { class: 'txt' }, label, el('small', {}, hint)), c);
   };
   openSheet('Settings',
-    el('h4', {}, 'Group the list by'), ...views,
-    el('h4', {}, 'Options'),
-    toggle('infants', 'Show infant foods', 'On the list and the menu.'),
-    toggle('sinkTicked', 'Move ticked items to the bottom', 'Off: they stay where they are, crossed out, so the rows don\'t move while you tap.'),
-    toggle('compact', 'Compact rows', 'Hide the days under each food so more fit on the screen.'),
-    el('p', { class: 'note' }, 'Settings and ticks are saved on this phone only.'));
+    el('p', { class: 'cap' }, 'Group the list by'),
+    el('div', { class: 'views', role: 'radiogroup', 'aria-label': 'Group the list by' }, tiles),
+    el('p', { class: 'cap' }, 'Options'),
+    el('div', { class: 'group' },
+      toggle('infants', 'Show infant foods', 'On the list and the menu', '#d9608c'),
+      toggle('sinkTicked', 'Move ticked to the bottom', 'Off: rows stay put while you tap', '#3b82c4'),
+      toggle('compact', 'Compact rows', 'Hide the days under each food', '#7d6bd1')),
+    el('p', { class: 'foot' }, 'Settings and ticks are saved on this phone only.'));
+  document.getElementById('panel').classList.add('grouped');
 }
 
 // A short message at the bottom that goes away by itself, with an optional

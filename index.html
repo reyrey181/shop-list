@@ -18,12 +18,12 @@
   color-scheme: light dark; /* native controls (the settings checkbox) follow the theme */
   --bg: #f6f6f3; --card: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #e3e3de;
   --accent: #2f6f4f; --accent-ink: #ffffff; --done: #a3a39d; --star: #b07d00; --chip: #ecf3ef;
-  --snack-btn: #8fd1ae; --track: #d3d3cd;
+  --snack-btn: #8fd1ae; --track: #d3d3cd; --seg-on: #ffffff; --tag-bg: #fbe4ee; --tag-ink: #a3365f;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #121412; --card: #1d201d; --ink: #ecece8; --muted: #9a9d97; --line: #2e322e;
           --accent: #5fae86; --accent-ink: #0d1a12; --done: #62665f; --star: #e3b341; --chip: #1f2b24;
-          --snack-btn: #2f6f4f; --track: #3c413c; }
+          --snack-btn: #2f6f4f; --track: #3c413c; --seg-on: #3c413c; --tag-bg: #3a2230; --tag-ink: #f29cc0; }
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
@@ -120,7 +120,6 @@ h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: v
 .switch:checked::after { transform: translateX(20px); }
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body.compact .row { min-height: 46px; padding-top: 4px; padding-bottom: 4px; }
-body.compact .row .days { display: none; }
 /* Title and ✕ stay at the top however long the sheet is. */
 .sheet-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px;
   background: var(--card); padding: 12px 0 8px; }
@@ -142,6 +141,60 @@ body.compact .row .days { display: none; }
 .panel li { padding: 4px 0; }
 .panel .opt { width: 100%; margin-top: 10px; }
 #qr { display: grid; place-items: center; padding: 12px; background: #fff; border-radius: 12px; margin-top: 10px; }
+/* Week switch: a segmented control, so it reads as a choice, not an action. */
+.seg { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--line); }
+.seg button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 9px; background: none; color: var(--ink); font-size: 15px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--seg-on); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.bar { align-items: center; }
+.bar .add { margin-left: auto; flex: 0 0 auto; padding: 0 14px; }
+.actions { margin-top: 18px; }
+/* Sections: count of what's bought; a finished one folds to one line. */
+h2 { display: flex; align-items: center; gap: 8px; }
+h2 .cnt { margin-left: auto; letter-spacing: 0; }
+h2 .hide { padding: 2px 8px; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+.card.fold { display: flex; width: 100%; align-items: center; gap: 10px; padding: 14px; font: inherit; font-size: 15px;
+  color: var(--muted); text-align: left; cursor: pointer; }
+.card.fold::before { content: "✓"; color: var(--accent); font-weight: 700; }
+.card.fold span { margin-left: auto; color: var(--accent); font-weight: 600; }
+.tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 8px; vertical-align: 2px;
+  background: var(--tag-bg); color: var(--tag-ink); font-size: 12px; font-weight: 600; }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row.pop .box { animation: pop .28s ease-out; }
+@keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .row.pop .box, #progress .fill { animation: none; transition: none; } }
+body.compact .row .when { display: none; }
+.notice { display: flex; align-items: center; gap: 10px; }
+.notice .opt { flex: none; margin-left: auto; padding: 0 14px; }
+.daycard.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.chip { margin-left: 8px; padding: 2px 8px; border-radius: 8px; vertical-align: 2px; background: var(--accent);
+  color: var(--accent-ink); font-size: 12px; font-weight: 600; }
+.field { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); color: var(--ink); font-size: 16px; }
+.add-form { display: flex; gap: 8px; margin-top: 10px; }
+.add-form .opt.primary { flex: none; width: auto; margin-top: 0; padding: 0 20px; }
+#title { cursor: pointer; }
+/* Bottom tab bar (List, Menu, Settings). Added in a commit of its own so it
+   can be reverted alone if the old tabs at the top are wanted back. */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; justify-content: center;
+  padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px); background: var(--card); border-top: 1px solid var(--line); }
+.tabbar button { flex: 1; max-width: 160px; min-height: 52px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; border: 0; border-radius: 10px; background: none; color: var(--muted);
+  font-size: 12px; font-weight: 600; cursor: pointer; }
+.tabbar svg { width: 24px; height: 24px; }
+.tabbar button[aria-pressed="true"] { color: var(--accent); }
+body:not(.ready) .tabbar { display: none; }
+main { padding-bottom: calc(env(safe-area-inset-bottom) + 100px); }
+#snack { bottom: calc(env(safe-area-inset-bottom) + 80px); }
+.top .nav { width: 40px; height: 40px; }
+/* Tablets: two columns of sections and of days. */
+@media (min-width: 760px) {
+  main { max-width: 1060px; }
+  .top, .tabs, #progress { max-width: 1028px; }
+  .sections { columns: 2; column-gap: 20px; }
+  .sec { display: inline-block; width: 100%; break-inside: avoid; }
+  .daygrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .daygrid .daycard { margin: 0; }
+}
 </style>
 </head>
 <body>
@@ -151,16 +204,19 @@ body.compact .row .days { display: none; }
     <h1 id="title">Shopping List</h1>
     <button class="nav" id="next" aria-label="Next week">›</button>
   </div>
-  <div class="tabs">
-    <button id="tab-list" aria-pressed="true">Shopping list</button>
-    <button id="tab-menu" aria-pressed="false">Menu</button>
-    <button id="settings" class="cog" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path
-      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-  </div>
   <div id="progress" hidden></div>
 </header>
 <main id="app"><p class="empty">Loading…</p></main>
+<!-- Bottom tab bar, like a phone app (thumb-reach, and the top stays short). -->
+<nav class="tabbar" aria-label="Pages">
+  <button id="tab-list" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/></svg><span>List</span></button>
+  <button id="tab-menu" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span>Menu</span></button>
+  <button id="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path
+      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
+</nav>
 <div id="sheet" hidden><div class="panel" id="panel"></div></div>
 <div id="snack" role="status" hidden></div>
 <script>
@@ -171,7 +227,10 @@ const MILK_LABEL = 'Milk - whole for under 2, 1% or skim for 2 and up';
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 let DATA = null;
-const state = { tab: 'list', monday: null, twoWeeks: false, infants: true, sinkTicked: false, groupBy: 'type', compact: false };
+const state = { tab: 'list', monday: null, twoWeeks: false, infants: true, sinkTicked: false, groupBy: 'type', compact: false,
+  open: new Set(),    // finished sections opened again (this visit only)
+  justTicked: null,   // the row to animate on this render
+  offline: false };   // showing the phone's saved copy (sw.js X-Shop-Saved)
 
 // ---------- storage (may be unavailable: private mode etc.) ----------
 function load(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } }
@@ -267,8 +326,9 @@ const TYPE_GROUPS = [...GROUPS, ['extra', 'Extras']];
 // Same names and order as shop_page.AISLES (roughly the walk through a store).
 const AISLES = ['Produce', 'Bread & bakery', 'Meat & deli', 'Dairy & eggs', 'Pantry & snacks', 'Frozen', 'Baby'];
 const AISLE_FALLBACK = { milk: 'Dairy & eggs', meat: 'Meat & deli', bread: 'Pantry & snacks', fruit: 'Produce', vegetable: 'Produce' };
-// The page's guess (from shop_page.aisle_for), unless the shopper moved it.
-const guessAisle = e => e.infant ? 'Baby' : ((DATA.aisles || {})[e.key] || AISLE_FALLBACK[e.comp] || 'Pantry & snacks');
+// The page's guess (from shop_page.aisle_for: Baby is only real baby food),
+// unless the shopper moved it.
+const guessAisle = e => (DATA.aisles || {})[e.key] || AISLE_FALLBACK[e.comp] || 'Pantry & snacks';
 const aisleOf = (e, moved) => (moved || load('aisles', {}))[e.key] || guessAisle(e);
 const firstDate = e => e.dates.reduce((a, b) => (b < a ? b : a));
 
@@ -283,7 +343,8 @@ function groupItems(items, mode) {
   for (const e of items) {
     put(mode === 'aisle' ? aisleOf(e, moved) : e.infant ? 'Infants only' : TYPE_GROUPS.find(([c]) => c === e.comp)[1], e);
   }
-  const order = mode === 'aisle' ? AISLES : [...TYPE_GROUPS.map(([, h]) => h), 'Infants only'];
+  // Infants before Extras: the infants' food matters more than the ketchup.
+  const order = mode === 'aisle' ? AISLES : [...GROUPS.map(([, h]) => h), 'Infants only', 'Extras'];
   return order.filter(h => by.has(h)).map(h => [h, by.get(h)]);
 }
 
@@ -297,6 +358,7 @@ function el(tag, attrs, ...kids) {
   return n;
 }
 const fmt = d => `${MONTH[d.getMonth()]} ${d.getDate()}`;
+const isoLabel = iso => { const [, m, d] = String(iso).split('-').map(Number); return m ? `${MONTH[m - 1]} ${d}` : iso; };
 function weekTitle(monday, weeks) {
   const last = addDays(monday, 7 * (weeks - 1) + 4);
   const range = monday.getMonth() === last.getMonth() ? `${fmt(monday)} – ${last.getDate()}` : `${fmt(monday)} – ${fmt(last)}`;
@@ -309,69 +371,174 @@ const dayLabel = (d, many) => many ? `${DAY[d.getDay()]} ${d.getMonth() + 1}/${d
 function render() {
   const weeks = state.twoWeeks ? 2 : 1;
   const [label, range] = weekTitle(state.monday, weeks);
-  const title = document.getElementById('title'); title.replaceChildren(range, el('small', {}, label));
+  const away = +state.monday !== +defaultMonday(today());
+  const title = document.getElementById('title');
+  title.replaceChildren(range, el('small', {}, label + (away ? ' · tap to go back' : '')));
+  title.setAttribute('aria-label', `${range}, ${label}` + (away ? '. Tap to go back.' : ''));
   document.getElementById('tab-list').setAttribute('aria-pressed', state.tab === 'list');
   document.getElementById('tab-menu').setAttribute('aria-pressed', state.tab === 'menu');
   document.body.classList.toggle('compact', state.compact);
   document.getElementById('progress').hidden = true;  // renderList shows it
   const app = document.getElementById('app');
   app.replaceChildren(...(state.tab === 'list' ? renderList(weeks) : renderMenu(weeks)));
+  state.justTicked = null;
 }
+
+// The shopper's own items (wipes, paper towels): kept on this phone until
+// they're ticked and cleared, whatever week is shown.
+const MINE = 'mine';
+const sameName = (a, b) => a.toLowerCase() === b.toLowerCase();
+const mineItems = () => load(MINE, []).map(m => ({ name: m.name, key: 'mine:' + m.name.toLowerCase(), own: true, done: !!m.done,
+  dates: [], mealDates: {}, forFoods: new Set() }));
+const setMine = fn => store(MINE, fn(load(MINE, [])));
+
+// "Ham (Whole/Baked)" -> ["Ham", "Whole/Baked"]: the bracket part goes on the
+// grey line, so long names don't wrap over three lines.
+function splitName(name) { const m = /^(.+?)\s*\(([^()]+)\)$/.exec(name); return m ? [m[1], m[2]] : [name, '']; }
 
 function renderList(weeks) {
   const dates = weekDates(state.monday, weeks);
   const tickKey = 'ticks:' + ymd(state.monday) + ':' + weeks;
   const ticks = new Set(load(tickKey, []));
   const have = new Set(load('have', []));
-  let items = weekItems(dates);
-  if (!state.infants) items = items.filter(e => !e.infant);
-  const groups = groupItems(items, state.groupBy);
-  const hidden = [];
-  let total = 0, left = 0;
+  const isDone = e => (e.own ? e.done : ticks.has(e.key));
+  const toggle = e => {
+    const on = !isDone(e);
+    if (e.own) setMine(list => list.map(m => (sameName(m.name, e.name) ? { ...m, done: on } : m)));
+    else { on ? ticks.add(e.key) : ticks.delete(e.key); store(tickKey, [...ticks]); }
+    if (on) { state.justTicked = e.key; if (navigator.vibrate) navigator.vibrate(12); }
+    render();
+  };
+  const menuItems = weekItems(dates);
+  const items = state.infants ? menuItems : menuItems.filter(e => !e.infant);
+  const own = mineItems();
+  const groups = [...(own.length ? [['My items', own]] : []), ...groupItems(items, state.groupBy)];
+  const closed = dates.filter(isClosed);
   const parts = [];
   parts.push(el('div', { class: 'bar' },
-    el('button', { class: 'opt', 'aria-pressed': state.twoWeeks, onclick: () => { state.twoWeeks = !state.twoWeeks; store('twoWeeks', state.twoWeeks); render(); } }, '2 weeks'),
-    el('button', { class: 'opt', onclick: () => copyList(groups, ticks, have) }, 'Copy list'),
-    el('button', { class: 'opt', onclick: () => {
-      const before = load(tickKey, []);
-      if (!before.length) { snack('Nothing is ticked.'); return; }
-      store(tickKey, []); render();
-      snack(`Cleared ${before.length} tick${before.length === 1 ? '' : 's'}.`, 'Undo', () => { store(tickKey, before); render(); });
-    } }, 'Clear ticks')));
-  if (!state.infants) parts.push(el('div', { class: 'prep hidden-note' }, 'Infant foods are hidden.',
+    el('div', { class: 'seg', role: 'group', 'aria-label': 'Weeks to shop for' }, [false, true].map(two =>
+      el('button', { 'aria-pressed': state.twoWeeks === two, onclick: () => { state.twoWeeks = two; store('twoWeeks', two); render(); } },
+        two ? '2 weeks' : '1 week'))),
+    el('button', { class: 'opt add', onclick: openAdd }, '+ Add item')));
+  parts.push(...notices());
+  if (!state.infants) parts.push(el('div', { class: 'prep notice' }, 'Infant foods are hidden.',
     el('button', { class: 'opt', onclick: () => { state.infants = true; store(SAVED_AS.infants, true); render(); } }, 'Show them')));
-  for (const [heading, items] of groups) {
-    const shown = items.filter(e => !have.has(e.key));
-    hidden.push(...items.filter(e => have.has(e.key)));
+  if (closed.length) parts.push(el('div', { class: 'prep' }, closed.length === dates.length ? 'Closed all week - nothing to buy.'
+    : `Closed ${closed.map(d => `${DAY[d.getDay()]} ${fmt(d)}`).join(', ')} - nothing to buy for ${closed.length === 1 ? 'that day' : 'those days'}.`));
+  const changed = menuChanged(menuItems, weeks);
+  if (changed) parts.push(changed);
+
+  const sections = el('div', { class: 'sections' });
+  const hidden = [];
+  let total = 0, got = 0;
+  for (const [heading, list] of groups) {
+    const shown = list.filter(e => e.own || !have.has(e.key));
+    hidden.push(...list.filter(e => !e.own && have.has(e.key)));
     if (!shown.length) continue;
     // Ticked items stay put unless the setting moves them down (rows that
     // move under your thumb get the next tap wrong).
-    shown.sort((a, b) => (state.sinkTicked ? ticks.has(a.key) - ticks.has(b.key) : 0) || a.name.localeCompare(b.name));
-    total += shown.length; left += shown.filter(e => !ticks.has(e.key)).length;
-    parts.push(el('h2', {}, heading));
-    parts.push(el('div', { class: 'card' }, shown.map(e => {
-      const done = ticks.has(e.key);
-      // Grouped by food type, "Extras" and "Infants only" say what these are;
-      // in the other views the days line does.
-      const days = e.dates.sort((a, b) => a - b).map(d => dayLabel(d, weeks > 1)).join(', ')
-        + (e.comp === 'extra' ? ' · for ' + [...e.forFoods].join(', ') : '')
-        + (e.infant && state.groupBy !== 'type' ? ' · infants' : '');
-      return el('div', { class: 'row' + (done ? ' done' : ''), onclick: () => {
-          done ? ticks.delete(e.key) : ticks.add(e.key); store(tickKey, [...ticks]); render(); } },
-        el('span', { class: 'box', 'aria-hidden': 'true' }),
-        el('div', { class: 'what' }, el('div', { class: 'name' }, e.name, e.wg ? el('span', { class: 'star' }, ' ★') : null),
-          el('div', { class: 'days' }, days)),
-        el('button', { class: 'more', 'aria-label': 'Swaps and options for ' + e.name,
-          onclick: ev => { ev.stopPropagation(); openItem(e); } }, '⋯'));
-    })));
+    shown.sort((a, b) => (state.sinkTicked ? isDone(a) - isDone(b) : 0) || a.name.localeCompare(b.name));
+    const n = shown.filter(isDone).length;
+    total += shown.length; got += n;
+    const complete = n === shown.length, folded = complete && !state.open.has(heading);
+    sections.append(el('section', { class: 'sec' },
+      el('h2', {}, el('span', {}, heading),
+        complete && !folded ? el('button', { class: 'hide', onclick: () => { state.open.delete(heading); render(); } }, 'Fold') : null,
+        el('span', { class: 'cnt' }, complete ? '✓' : `${n}/${shown.length}`)),
+      folded
+        ? el('button', { class: 'card fold', onclick: () => { state.open.add(heading); render(); } },
+            shown.length === 1 ? 'Bought' : `All ${shown.length} bought`, el('span', {}, 'Show'))
+        : el('div', { class: 'card' }, shown.map(e => itemRow(e, isDone(e), toggle, weeks)))));
   }
-  if (!total && !hidden.length) parts.push(el('p', { class: 'empty' }, 'Nothing on the menu this week.'));
-  showProgress(total - left, total);
+  parts.push(sections);
+  if (!total && !hidden.length && closed.length < dates.length) parts.push(el('p', { class: 'empty' }, 'Nothing on the menu this week.'));
+  showProgress(got, total);
   if (hidden.length) parts.push(el('p', { class: 'note' }, `Always have (hidden): ${hidden.map(e => e.name).join(', ')}. Tap ⋯ on an item to change.`),
     el('button', { class: 'opt', onclick: () => { store('have', []); render(); } }, 'Show them again'));
+  parts.push(el('div', { class: 'bar actions' },
+    el('button', { class: 'opt', onclick: () => copyList(groups, isDone, have) }, 'Copy list'),
+    el('button', { class: 'opt', onclick: () => {
+      const before = load(tickKey, []), beforeMine = load(MINE, []);
+      const n = before.length + beforeMine.filter(m => m.done).length;
+      if (!n) { snack('Nothing is ticked.'); return; }
+      store(tickKey, []); setMine(list => list.filter(m => !m.done)); render();
+      snack(`Cleared ${n} tick${n === 1 ? '' : 's'}.`, 'Undo', () => { store(tickKey, before); store(MINE, beforeMine); render(); });
+    } }, 'Clear ticks')));
   parts.push(el('p', { class: 'note' }, '★ = buy the whole grain-rich kind (a whole grain listed first in the ingredients). Tap ⋯ for foods that count the same if the store is out.'));
   if (state.groupBy === 'day') parts.push(el('p', { class: 'note' }, 'Each food is under the first day it\'s needed.'));
   return parts;
+}
+
+function itemRow(e, done, toggle, weeks) {
+  const [main, detail] = splitName(e.name);
+  const when = e.own ? '' : e.dates.sort((a, b) => a - b).map(d => dayLabel(d, weeks > 1)).join(', ')
+    + (e.comp === 'extra' ? ' · for ' + [...e.forFoods].join(', ') : '');
+  // A real checkbox to screen readers and keyboards, a whole tappable row to fingers.
+  const press = ev => {
+    const keyboard = ev.type === 'keydown';
+    toggle(e);
+    if (keyboard) { const row = document.querySelector(`.row[data-key="${CSS.escape(e.key)}"]`); if (row) row.focus(); }
+  };
+  return el('div', { class: 'row' + (done ? ' done' : '') + (state.justTicked === e.key ? ' pop' : ''), 'data-key': e.key,
+      role: 'checkbox', 'aria-checked': done, tabindex: 0, onclick: press,
+      onkeydown: ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); press(ev); } } },
+    el('span', { class: 'box', 'aria-hidden': 'true' }),
+    el('div', { class: 'what' },
+      el('div', { class: 'name' }, main, e.wg ? el('span', { class: 'star' }, ' ★') : null,
+        e.infant && state.groupBy !== 'type' && !/^infant/i.test(main) ? el('span', { class: 'tag' }, 'Infant') : null),
+      detail || when ? el('div', { class: 'days' }, detail || null, when ? el('span', { class: 'when' }, (detail ? ' · ' : '') + when) : null) : null),
+    e.own
+      ? el('button', { class: 'more', 'aria-label': 'Remove ' + e.name, onclick: ev => { ev.stopPropagation(); removeMine(e); } }, '✕')
+      : el('button', { class: 'more', 'aria-label': 'Swaps and options for ' + e.name, onclick: ev => { ev.stopPropagation(); openItem(e); } }, '⋯'));
+}
+
+// Notes at the top of both tabs.
+function notices() {
+  return state.offline ? [el('div', { class: 'prep' }, `No signal - showing the copy saved on this phone (menu updated ${isoLabel(DATA.updated)}).`)] : [];
+}
+
+// "Menu changed since you last looked": what this phone saw for this week
+// last time vs now (a template edit or Make Month can change it). OK keeps the
+// new list as the one seen.
+function menuChanged(menuItems, weeks) {
+  const seenKey = 'seen:' + ymd(state.monday) + ':' + weeks;
+  const now = Object.fromEntries(menuItems.map(e => [e.key, e.name]));
+  const before = load(seenKey, null);
+  if (!before) { store(seenKey, now); return null; }
+  const added = Object.keys(now).filter(k => !(k in before)).map(k => now[k]);
+  const removed = Object.keys(before).filter(k => !(k in now)).map(k => before[k]);
+  if (!added.length && !removed.length) return null;
+  return el('div', { class: 'prep notice' },
+    el('div', {}, el('b', {}, 'The menu changed since you last looked'),
+      added.length ? el('div', {}, '+ ' + added.join(', ')) : null,
+      removed.length ? el('div', {}, '− ' + removed.join(', ')) : null),
+    el('button', { class: 'opt', onclick: () => { store(seenKey, now); render(); } }, 'OK'));
+}
+
+function openAdd() {
+  const input = el('input', { type: 'text', class: 'field', placeholder: 'e.g. Paper towels', autocomplete: 'off',
+    enterkeyhint: 'done', 'aria-label': 'Item to add' });
+  const added = el('p', { class: 'note' });
+  const names = [];
+  const add = ev => {
+    ev.preventDefault();
+    const name = input.value.trim();
+    if (!name) return;
+    setMine(list => (list.some(m => sameName(m.name, name)) ? list : [...list, { name, done: false }]));
+    names.push(name); added.textContent = 'Added: ' + names.join(', ');
+    input.value = ''; input.focus(); render();
+  };
+  openSheet('Add an item',
+    el('p', { class: 'note' }, 'For things that aren\'t on the menu - wipes, paper towels. They stay on the list on this phone until they\'re ticked and cleared.'),
+    el('form', { class: 'add-form', onsubmit: add }, input, el('button', { class: 'opt primary', type: 'submit' }, 'Add')), added);
+  setTimeout(() => input.focus(), 50);
+}
+
+function removeMine(e) {
+  const before = load(MINE, []);
+  setMine(list => list.filter(m => !sameName(m.name, e.name)));
+  render();
+  snack(`Removed ${e.name}.`, 'Undo', () => { store(MINE, before); render(); });
 }
 
 // The bar under the tabs: how much of the list is bought (stays in view
@@ -509,10 +676,10 @@ function snack(msg, label, action) {
   snackTimer = setTimeout(() => { box.hidden = true; }, label ? 8000 : 4000);
 }
 
-function copyList(groups, ticks, have) {
+function copyList(groups, isDone, have) {
   const lines = [];
   for (const [h, items] of groups) {
-    const rest = items.filter(e => !ticks.has(e.key) && !have.has(e.key));
+    const rest = items.filter(e => !isDone(e) && (e.own || !have.has(e.key)));
     if (rest.length) { lines.push(h.toUpperCase()); rest.forEach(e => lines.push(e.name + (e.wg ? ' ★' : ''))); lines.push(''); }
   }
   const text = lines.join('\n').trim();
@@ -524,7 +691,7 @@ function copyList(groups, ticks, have) {
 const PREP_SKIP = /cheese|peanut|egg|yogurt|bean|tuna/i;
 const needsPrep = (c, n) => n && (/frozen/i.test(n) || (c === 'meat' && !PREP_SKIP.test(n)));
 function renderMenu(weeks) {
-  const parts = [];
+  const parts = [...notices()];
   const t = today();
   // The next day the center serves: skips weekends and closed days.
   let next = addDays(t, 1), nextDay = cycleDay(next);
@@ -546,12 +713,14 @@ function renderMenu(weeks) {
     parts.push(el('div', { class: 'prep' }, el('b', {}, `Next up, ${DAY[next.getDay()]} ${next.getMonth() + 1}/${next.getDate()}: `),
       prep.length ? 'check you have these, and thaw any that need it - ' + prep.join(', ') + '.' : 'nothing to thaw.'));
   }
+  const grid = el('div', { class: 'daygrid' });
+  parts.push(grid);
   for (const d of weekDates(state.monday, weeks)) {
     const isToday = +d === +t;
-    if (isClosed(d)) { parts.push(el('div', { class: 'card daycard' }, el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)} · Closed`))); continue; }
+    if (isClosed(d)) { grid.append(el('div', { class: 'card daycard' }, el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)} · Closed`))); continue; }
     const day = cycleDay(d); if (!day) continue;
-    parts.push(el('div', { class: 'card daycard' },
-      el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)}${isToday ? ' · Today' : ''}`),
+    grid.append(el('div', { class: 'card daycard' + (isToday ? ' today' : '') },
+      el('h3', {}, `${DAY[d.getDay()]} ${fmt(d)}`, isToday ? el('span', { class: 'chip' }, 'Today') : null),
       MEALS.map(meal => {
         const it = day.meals[meal] || {};
         const names = GROUPS.map(([c]) => it[c]).filter(Boolean).map(n => n + (n === it.bread && it.wg ? ' ★' : ''));
@@ -561,7 +730,7 @@ function renderMenu(weeks) {
           inf.length ? el('div', { class: 'days' }, 'Infants: ' + inf.join(', ')) : null);
       })));
   }
-  parts.push(el('p', { class: 'note' }, `Menu updated ${DATA.updated}. Months not made yet show the usual cycle; closures show once they're entered.`));
+  parts.push(el('p', { class: 'note' }, `Menu updated ${isoLabel(DATA.updated)}. Months not made yet show the usual cycle; closures show once they're entered.`));
   parts.push(el('button', { class: 'opt', onclick: showQr }, 'Show QR code for this page'));
   return parts;
 }
@@ -573,16 +742,15 @@ function showQr() {
   const draw = () => new QRCode(box, { text: location.origin + location.pathname + '#k=' + load('key', ''), width: 240, height: 240 });
   if (window.QRCode) return draw();
   const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-  s.onload = draw; s.onerror = () => box.replaceChildren('QR code needs an internet connection.');
+  s.src = 'qrcode.min.js';  // shipped with the page (shop_page.SITE_FILES), so it works offline
+  s.onload = draw; s.onerror = () => box.replaceChildren('Could not draw the QR code here.');
   document.head.append(s);
 }
 
 // No key: e.g. an iPhone home-screen icon, which keeps its own storage apart
 // from Safari's. Pasting the full link once saves the key for this copy.
 function askForLink() {
-  const input = el('input', { type: 'text', inputmode: 'url', autocapitalize: 'off', placeholder: 'https://…/shop-list/#k=…', autocomplete: 'off',
-    style: 'width:100%;min-height:48px;font-size:16px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)' });
+  const input = el('input', { type: 'text', class: 'field', inputmode: 'url', autocapitalize: 'off', placeholder: 'https://…/shop-list/#k=…', autocomplete: 'off' });
   const msg = el('p', { class: 'note' });
   const go = ev => {
     ev.preventDefault();
@@ -595,6 +763,39 @@ function askForLink() {
     input, msg, el('button', { class: 'opt primary', type: 'submit' }, 'Open')));
 }
 
+// Swipe left/right on the list or menu for the next/previous week.
+function swipeWeeks(area) {
+  let from = null;
+  area.addEventListener('touchstart', ev => {
+    from = ev.touches.length === 1 ? { x: ev.touches[0].clientX, y: ev.touches[0].clientY } : null;
+  }, { passive: true });
+  area.addEventListener('touchend', ev => {
+    if (!from) return;
+    const dx = ev.changedTouches[0].clientX - from.x, dy = ev.changedTouches[0].clientY - from.y;
+    from = null;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 40) { state.monday = addDays(state.monday, dx < 0 ? 7 : -7); render(); }
+  }, { passive: true });
+}
+
+// The Menu tab opens at today's card when today is in the week shown.
+function scrollToToday() {
+  const card = document.querySelector('.daycard.today');
+  if (card) window.scrollTo({ top: card.getBoundingClientRect().top + scrollY - document.querySelector('header').offsetHeight - 8 });
+}
+
+// Ticks and "seen" lists for weeks more than 8 weeks back, and the old
+// Infants button's setting (now showInfants), are no use any more.
+function tidyStorage() {
+  try {
+    const cutoff = ymd(addDays(today(), -56));
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const m = /^(ticks|seen):(\d{4}-\d{2}-\d{2})/.exec(localStorage.key(i) || '');
+      if (m && m[2] < cutoff) localStorage.removeItem(localStorage.key(i));
+    }
+    localStorage.removeItem('infants');
+  } catch (e) {}
+}
+
 // ---------- start ----------
 async function start() {
   const m = /[#&]k=([A-Za-z0-9_-]+)/.exec(location.hash);
@@ -603,8 +804,9 @@ async function start() {
   const app = document.getElementById('app');
   if (!key) { askForLink(); return; }
   try {
-    const blob = await (await fetch('menu.enc', { cache: 'no-cache' })).json();
-    DATA = await decrypt(blob, b64(key));
+    const res = await fetch('menu.enc', { cache: 'no-cache' });
+    state.offline = res.headers.get('X-Shop-Saved') === '1' || navigator.onLine === false;
+    DATA = await decrypt(await res.json(), b64(key));
   } catch (e) {
     const badKey = e.message === 'key';
     app.replaceChildren(el('p', { class: 'empty' }, badKey
@@ -614,6 +816,7 @@ async function start() {
     return;
   }
   document.body.classList.add('ready');
+  tidyStorage();
   state.twoWeeks = load('twoWeeks', false); state.infants = load(SAVED_AS.infants, true); state.sinkTicked = load('sinkTicked', false);
   state.compact = load('compact', false);
   state.groupBy = VIEWS.some(([v]) => v === load('groupBy')) ? load('groupBy') : 'type';
@@ -621,7 +824,11 @@ async function start() {
   document.getElementById('prev').onclick = () => { state.monday = addDays(state.monday, -7); render(); };
   document.getElementById('next').onclick = () => { state.monday = addDays(state.monday, 7); render(); };
   document.getElementById('tab-list').onclick = () => { state.tab = 'list'; render(); };
-  document.getElementById('tab-menu').onclick = () => { state.tab = 'menu'; render(); };
+  document.getElementById('tab-menu').onclick = () => { state.tab = 'menu'; render(); scrollToToday(); };
+  document.getElementById('title').onclick = () => {
+    if (+state.monday !== +defaultMonday(today())) { state.monday = defaultMonday(today()); render(); }
+  };
+  swipeWeeks(document.getElementById('app'));
   document.getElementById('settings').onclick = openSettings;
   document.getElementById('sheet').onclick = ev => { if (ev.target.id === 'sheet') closeSheet(); };
   document.onkeydown = ev => { if (ev.key === 'Escape') closeSheet(); };

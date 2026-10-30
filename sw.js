@@ -5,7 +5,7 @@
 // network keeps going in the background and refreshes it for next time).
 const CACHE = 'shop-list-v1';
 const WAIT_MS = 3000;
-const FILES = ['./', 'index.html', 'menu.enc', 'manifest.json', 'icon.png'];
+const FILES = ['./', 'index.html', 'menu.enc', 'manifest.json', 'icon.png', 'qrcode.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).catch(() => {}));
@@ -19,7 +19,13 @@ self.addEventListener('fetch', e => {
     if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
     return r;
   });
-  const saved = caches.match(e.request, { ignoreSearch: true });
+  // Marked so the page can say it's showing the phone's saved copy.
+  const saved = caches.match(e.request, { ignoreSearch: true }).then(r => {
+    if (!r) return r;
+    const headers = new Headers(r.headers);
+    headers.set('X-Shop-Saved', '1');
+    return new Response(r.body, { status: r.status, statusText: r.statusText, headers });
+  });
   // Too slow: the saved copy if there is one, else keep waiting.
   const slow = new Promise(ok => setTimeout(ok, WAIT_MS)).then(() => saved).then(r => r || net);
   // No signal at all: the saved copy (or the network error if there isn't one).

@@ -68,6 +68,8 @@ h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: v
 .meal:first-child { border-top: 0; }
 .meal b { display: block; font-size: 14px; color: var(--muted); font-weight: 600; }
 .prep { background: var(--chip); border-radius: 12px; padding: 10px 14px; margin: 10px 0; font-size: 15px; }
+.hidden-note { display: flex; align-items: center; gap: 10px; }
+.hidden-note .opt { flex: none; margin-left: auto; padding: 0 14px; }
 .daycard { margin-bottom: 12px; }
 .daycard h3 { margin: 0; padding: 10px 14px; font-size: 16px; border-bottom: 1px solid var(--line); }
 #sheet { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; }
@@ -336,6 +338,8 @@ function renderList(weeks) {
       store(tickKey, []); render();
       snack(`Cleared ${before.length} tick${before.length === 1 ? '' : 's'}.`, 'Undo', () => { store(tickKey, before); render(); });
     } }, 'Clear ticks')));
+  if (!state.infants) parts.push(el('div', { class: 'prep hidden-note' }, 'Infant foods are hidden.',
+    el('button', { class: 'opt', onclick: () => { state.infants = true; store(SAVED_AS.infants, true); render(); } }, 'Show them')));
   for (const [heading, items] of groups) {
     const shown = items.filter(e => !have.has(e.key));
     hidden.push(...items.filter(e => have.has(e.key)));
@@ -451,6 +455,10 @@ const ICONS = {
   sinkTicked: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   compact: '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
 };
+// Settings saved under a different name than their state key. Infants was
+// "infants" when it was a button in the bar that was easy to turn off by
+// accident; the new name puts every phone back to showing them once.
+const SAVED_AS = { infants: 'showInfants' };
 const VIEWS = [
   ['type', 'Food type', 'Milk, meat, bread, fruit, veg, extras'],
   ['aisle', 'Store aisle', 'In the order you walk the store'],
@@ -473,7 +481,7 @@ function openSettings() {
   const toggle = (key, label, hint, color) => {
     const c = el('input', { type: 'checkbox', class: 'switch', role: 'switch' });
     c.checked = state[key];
-    c.addEventListener('change', () => { state[key] = c.checked; store(key, c.checked); render(); });
+    c.addEventListener('change', () => { state[key] = c.checked; store(SAVED_AS[key] || key, c.checked); render(); });
     return el('label', { class: 'opt-row' }, el('span', { class: 'ico', style: `background:${color}` }, icon(ICONS[key])),
       el('span', { class: 'txt' }, label, el('small', {}, hint)), c);
   };
@@ -606,7 +614,7 @@ async function start() {
     return;
   }
   document.body.classList.add('ready');
-  state.twoWeeks = load('twoWeeks', false); state.infants = load('infants', true); state.sinkTicked = load('sinkTicked', false);
+  state.twoWeeks = load('twoWeeks', false); state.infants = load(SAVED_AS.infants, true); state.sinkTicked = load('sinkTicked', false);
   state.compact = load('compact', false);
   state.groupBy = VIEWS.some(([v]) => v === load('groupBy')) ? load('groupBy') : 'type';
   state.monday = defaultMonday(today());
